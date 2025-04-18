@@ -9,6 +9,21 @@ from datetime import datetime
 from fire.models import Locations, Incident, FireStation
 
 
+def map_station(request):
+    fireStations = FireStation.objects.values('name', 'latitude', 'longitude')
+
+    for fs in fireStations:
+        fs['latitude'] = float(fs['latitude'])
+        fs['longitude'] = float(fs['longitude'])
+
+    fireStations_list = list(fireStations)
+
+    context = {
+        'fireStations': fireStations_list,
+    }
+
+    return render(request, 'map_station.html', context)
+
 class HomePageView(ListView):
     model = Locations
     context_object_name = 'home'
@@ -40,21 +55,6 @@ def PieCountbySeverity(request):
         else:
             data = {}
         return JsonResponse(data)
-
-def map_station(request):
-    fireStations = FireStation.objects.values('name', 'latitude', 'longitude')
-
-    for fs in fireStations:
-        fs['latitude'] = float(fs['latitude'])
-        fs['longitude'] = float(fs['longitude'])
-
-    fireStations_list = list(fireStations)
-
-    context = {
-        'fireStations': fireStations_list,
-    }
-
-    return render(request, 'map_station.html', context)
 
 
 def LineCountbyMonth(request):
