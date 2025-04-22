@@ -3,11 +3,19 @@ from django.views.generic.list import ListView
 from django.db import connection
 from django.http import JsonResponse
 from django.db.models.functions import ExtractMonth
-
+from django.db.models import Q
 from django.db.models import Count
+import calendar
 from datetime import datetime
-from fire.models import Locations, Incident, FireStation
+from django.urls import reverse_lazy
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from .models import Locations, Incident, FireStation
+from fire.forms import FireStationForm, IncidentForm, LocationForm
 
+class HomePageView(ListView):
+    model = Locations
+    context_object_name = 'home'
+    template_name = "home.html"
 
 def map_station(request):
     fireStations = FireStation.objects.values('name', 'latitude', 'longitude')
@@ -24,10 +32,237 @@ def map_station(request):
 
     return render(request, 'map_station.html', context)
 
-class HomePageView(ListView):
+
+def map_incidents(request):
+    # Get the city from the request parameters
+    city = request.GET.get('city', '')
+
+    
+    query = """
+        SELECT
+            fire_locations.latitude AS latitude,
+            fire_locations.longitude AS longitude,
+            fire_locations.address AS address,
+            fire_incident.severity_level AS severity_level,
+            fire_incident.description AS description
+        FROM
+            fire_incident
+        INNER JOIN  
+            fire_locations ON fire_incident.location_id = fire_locations.id
+        WHERE
+            fire_locations.city = %s
+    """
+
+    # Execute the SQL query with the city parameter
+    with connection.cursor() as cursor:
+        cursor.execute(query, [city])
+        rows = cursor.fetchall()
+
+    # Prepare data for the templates
+    incident_data = []
+
+    for row in rows:
+        latitude = row[0]
+        longitude = row[1]
+        address = row[2]  # Fix here: Assign the correct variable to address
+        severity_level = row[3]  # Fix here: Assign the correct variable to severity_level
+        description = row[4]  # Fix here: Assign the correct variable to description
+
+        incident_data.append({
+            'latitude': latitude,
+            'longitude': longitude,
+            'address': address,
+            'severity_level': severity_level,
+            'description': description
+        })
+
+    # Get cities for the city dropdown
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT DISTINCT city FROM fire_locations")
+        cities = cursor.fetchall()
+        cities_list = [city[0] for city in cities]
+
+    context = {
+        'incident_data': incident_data,
+        'cities': cities_list,
+    }
+
+    return render(request, 'map_incident.html', context)
+
+
+def city_data(request):
+    city_name = request.GET.get('city')
+    if city_name:
+        # Fetch the city's average latitude and longitude
+        city_locations = Locations.objects.filter(city=city_name)
+        if city_locations.exists():
+            city = city_locations.first()
+            incidents = Incident.objects.filter(location__city=city_name)
+            incident_data = [{
+                'latitude': float(incident.location.latitude),
+                'longitude': float(incident.location.longitude),
+                'address': incident.location.address
+            } for incident in incidents]
+            data = {
+                'latitude': float(city.latitude),
+                'longitude': float(city.longitude),
+                'incidents': incident_data
+            }
+            return JsonResponse(data)
+    return JsonResponse({'error': 'City not found'}, status=404)
+        
+def city_incidents(request):
+    city = request.GET.get('city', '')
+    query = """
+        SELECT fire_locations.latitude AS latitude, fire_locations.longitude AS longitude,
+        fire_locations.address AS address
+        FROM fire_incident
+        INNER JOIN fire_locations ON fire_incident.location_id = fire_locations.id
+        WHERE fire_locations.city = %s
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(query, [city])
+        rows = cursor.fetchall()
+        incident_data = []
+        for row in rows:
+            latitude = row[0]
+            longitude = row[1]
+            address = row[2]
+            incident_data.append({
+                'latitude': latitude,
+                'longitude': longitude,
+                'address': address
+            })
+    return JsonResponse({'incidents_data': incident_data})
+
+
+
+
+
+
+
+
+class FireStationListView(ListView):
+    model = FireStation
+    context_object_name = 'stations'
+    template_name = 'fire_station_list.html'
+    paginate_by = 5
+
+    def get_queryset(self, *args, **kwargs):
+        qs = super().get_queryset(*args, **kwargs)
+        if self.request.GET.get("q") is not None:
+            query = self.request.GET.get('q')
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(address__icontains=query) |
+                Q(city__icontains=query) |
+                Q(country__icontains=query)
+            )
+        return qs.order_by('id')  
+
+class FireStationCreateView(CreateView):
+    model = FireStation
+    form_class = FireStationForm
+    template_name = 'fire_station_form.html'
+    success_url = reverse_lazy('fire_station_list')
+
+class FireStationUpdateView(UpdateView):
+    model = FireStation
+    form_class = FireStationForm
+    template_name = 'fire_station_form.html'
+    success_url = reverse_lazy('fire_station_list')
+
+
+class FireStationDeleteView(DeleteView):
+    model = FireStation
+    template_name = 'fire_station_confirm_delete.html'
+    success_url = reverse_lazy('fire_station_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['station_name'] = self.object.name
+        return context
+
+
+
+
+
+
+
+
+
+
+
+class IncidentListView(ListView):
+    model = Incident
+    template_name = 'incident_list.html'
+    context_object_name = 'incidents'
+    paginate_by = 5
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        query = self.request.GET.get('q')
+        if query:
+            queryset = queryset.filter(Q(location__icontains=query) | Q(description__icontains=query) | Q(severity_level__icontains=query))
+        return queryset.order_by('id')  
+
+ 
+class IncidentCreateView(CreateView):
+    model = Incident
+    form_class = IncidentForm
+    template_name = 'incident_form.html'
+    success_url = reverse_lazy('incident_list')
+
+class IncidentUpdateView(UpdateView):
+    model = Incident
+    form_class = IncidentForm
+    template_name = 'incident_form.html'
+    success_url = reverse_lazy('incident_list')
+
+class IncidentDeleteView(DeleteView):
+    model = Incident
+    template_name = 'incident_confirm_delete.html'
+    success_url = reverse_lazy('incident_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['incident_description'] = self.object.description
+        return context
+    
+
+
+
+class LocationListView(ListView):
     model = Locations
-    context_object_name = 'home'
-    template_name = "home.html"
+    template_name = 'location_list.html'
+    context_object_name = 'locations'
+    paginate_by = 10
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        query = self.request.GET.get('q')
+        if query:
+            queryset = queryset.filter(Q(name__icontains=query) | Q(address__icontains=query) | Q(city__icontains=query) | Q(country__icontains=query))
+        return queryset.order_by('id')  
+
+class LocationCreateView(CreateView):
+    model = Locations
+    form_class = LocationForm
+    template_name = 'location_form.html'
+    success_url = reverse_lazy('location_list')
+
+class LocationUpdateView(UpdateView):
+    model = Locations
+    form_class = LocationForm
+    template_name = 'location_form.html'
+    success_url = reverse_lazy('location_list')
+
+class LocationDeleteView(DeleteView):
+    model = Locations
+    template_name = 'location_confirm_delete.html'
+    success_url = reverse_lazy('location_list')
+
+
 
 class ChartView(ListView):
     template_name = 'chart.html'
@@ -38,6 +273,7 @@ class ChartView(ListView):
     
     def get_queryset(self, *args, **kwargs):
         pass
+    
 def PieCountbySeverity(request):
         query = '''
         SELECT severity_level, COUNT(*) as count
