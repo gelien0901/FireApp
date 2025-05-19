@@ -2,41 +2,39 @@
 
 {% block content %}
 <div class="container">
-  <div class="row">
-    <div class="col-md-12">
-      <h2 class="mt-4">List of Fire Stations</h2>
-      
-      <form method="get" class="form-inline mb-3">
+    <h2>List of Fire Trucks</h2>
+    
+    <form method="get" class="form-inline mb-3">
         <input type="text" name="q" class="form-control mr-2" placeholder="Search" value="{{ request.GET.q }}">
         <button type="submit" class="btn btn-outline-primary">Search</button>
       </form>
-      <a href="{% url 'fire_station_create' %}" class="btn btn-primary mb-3">Add New Fire Station</a>
-      <table class="table table-bordered">
+      <a href="{% url 'firetruck_create' %}" class="btn btn-primary mb-3">Add New Fire Truck</a>
+    <table class="table">
         <thead>
-          <tr>
-            <th>Name</th>
-            <th>Address</th>
-            <th>City</th>
-            <th>Country</th>
-            <th>Actions</th>
-          </tr>
+            <tr>
+                <th>Truck Number</th>
+                <th>Model</th>
+                <th>Capacity</th>
+                <th style="width: 300px;">Station</th> <!-- Set width to 100px or adjust as needed -->
+                <th>Actions</th>
+            </tr>
         </thead>
         <tbody>
-          {% for station in stations %}
-          <tr>
-            <td>{{ station.name }}</td>
-            <td>{{ station.address }}</td>
-            <td>{{ station.city }}</td>
-            <td>{{ station.country }}</td>
-            <td>
-              <a href="{% url 'fire_station_update' station.pk %}" class="btn btn-sm btn-primary">Edit</a>
-              <a href="{% url 'fire_station_delete' station.pk %}" class="btn btn-sm btn-danger">Delete</a>
-            </td>
-          </tr>
-          {% endfor %}
+            {% for truck in firetrucks %}
+            <tr>
+                <td>{{ truck.truck_number }}</td>
+                <td>{{ truck.model }}</td>
+                <td>{{ truck.capacity }}</td>
+                <td>{{ truck.station }}</td>
+                <td>
+                    <a href="{% url 'firetruck_update' truck.pk %}" class="btn btn-sm btn-primary" style="max-width: 80px;">Edit</a>
+                    <a href="{% url 'firetruck_delete' truck.pk %}" class="btn btn-sm btn-danger" style="max-width: 80px;">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
         </tbody>
-      </table>
-      {% if is_paginated %}
+    </table>
+    {% if is_paginated %}
         <nav aria-label="Page navigation">
           <ul class="pagination justify-content-center">
             {% if page_obj.has_previous %}
@@ -51,7 +49,5 @@
           </ul>
         </nav>
       {% endif %}
-    </div>
-  </div>
 </div>
 {% endblock %}

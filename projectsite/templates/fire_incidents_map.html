@@ -6,7 +6,7 @@
 
 <div class="page-inner">
   <div class="page-header">
-    <h4 class="page-title">Map Incidents</h4>
+    <h4 class="page-title">Fire Incidents Map</h4>
     <ul class="breadcrumbs">
       <li class="nav-home">
         <a href="#">
@@ -23,7 +23,7 @@
         <i class="flaticon-right-arrow"></i>
       </li>
       <li class="nav-item">
-        <a href="#">Map Incidents</a>
+        <a href="#">Fire Incidents</a>
       </li>
     </ul>
   </div>
@@ -31,7 +31,7 @@
     <div class="col-md-12">
       <div class="card card-transparent">
         <div class="card-header">
-          <h4 class="card-title text-center">Map Incidents</h4>
+          <h4 class="card-title text-center">Fire Incidents</h4>
           <p class="card-category text-center">Filter by city and explore incidents. Made by our friends from <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>.</p>
         </div>
         <!-- Add a dropdown menu to select a city -->
@@ -54,15 +54,15 @@
 <script>
   var map = L.map('map');
   var incidentIcon = L.icon({
-    iconUrl: '{% static "C:\Users\jhoge\OneDrive\Desktop\AppDev\fireApp-boilerplate\projectsite\static\img\bonfire.png" %}',
-    iconSize: [50, 50],
+    iconUrl: '{% static "img/flame.png" %}', // Use Django static tag for the icon URL
+    iconSize: [50, 50], // Adjust the size as needed
   });
 
   function setMapView(latitude, longitude, zoom) {
     map.setView([latitude, longitude], zoom);
   }
 
-  setMapView(9.81644, 118.72239, 5);
+  setMapView(9.81644, 118.72239, 5); // Default view
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -121,7 +121,7 @@
   });
 
   // Fetch incident data for the default city on page load
-  fetch('/map-incidents/')
+  fetch('/fire-incidents-map/')
     .then(response => response.json())
     .then(data => {
       data.forEach(function(incident) {
@@ -147,6 +147,16 @@
 </script>
 
 {% endblock %}
+
+
+
+
+
+
+
+
+
+
 
 
 
