@@ -50,8 +50,8 @@
 <script>
   var map = L.map('map').setView([9.81644, 118.72239], 13);
   var truckIcon = L.icon({
-  iconUrl: '../static/img/firetruck.png', // Replace with the path to your red marker icon
-  iconSize: [50, 50], // Adjust the size as needed
+  iconUrl: '../static/img/firetruck.png',
+  iconSize: [50, 50],
   });
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -59,20 +59,17 @@
   }).addTo(map);
 
 
-  // Create an array to hold all the markers
   var markers = [];
 
-  // Define the marker data
   var markerData = {{ fireStations|safe }};
 
-  // Loop through the marker data and create markers
   markerData.forEach(function (data) {
       var latitude = parseFloat(data.latitude);
       var longitude = parseFloat(data.longitude);
 
       var marker = L.marker([latitude, longitude], { icon: truckIcon }).addTo(map);
 
-      // Create a popup and set its content
+
       var popupContent = data.name;
       var popup = L.popup().setContent(popupContent);
 
